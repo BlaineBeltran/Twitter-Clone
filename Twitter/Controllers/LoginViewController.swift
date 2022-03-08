@@ -8,8 +8,17 @@
 
 import UIKit
 
-class LoginViewController: UIViewController {
+class LoginViewController: UIViewController, UIAdaptivePresentationControllerDelegate {
 
+    
+    
+    override func viewDidAppear(_ animated: Bool) {
+        super.viewDidAppear(animated)
+        if UserDefaults.standard.bool(forKey: "isLoggedIn") == true {
+            self.performSegue(withIdentifier: "loginToHome", sender: self)
+        }
+    }
+    
     override func viewDidLoad() {
         super.viewDidLoad()
         
@@ -22,6 +31,7 @@ class LoginViewController: UIViewController {
         TwitterAPICaller.client?.login(url: url, success: { [weak self] in
             
             guard let strongSelf = self else { return }
+            UserDefaults.standard.set(true, forKey: "isLoggedIn")
             strongSelf.performSegue(withIdentifier: "loginToHome", sender: strongSelf)
         }, failure: {  [weak self ] error in
             
