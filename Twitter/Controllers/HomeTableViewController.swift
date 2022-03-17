@@ -19,8 +19,15 @@ class HomeTableViewController: UITableViewController {
         
         loadTweets()
         myRefreshControl.addTarget(self, action: #selector(loadTweets), for: .valueChanged)
-        tableView.estimatedRowHeight = 200
+        myRefreshControl.tintColor = UIColor(named: "twitter-main-colors")
+        tableView.rowHeight = UITableView.automaticDimension
+        tableView.estimatedRowHeight = 150
         tableView.refreshControl = myRefreshControl
+    }
+    
+    override func viewDidAppear(_ animated: Bool) {
+        super.viewDidAppear(animated)
+        loadTweets()
     }
     
     @objc func loadTweets() {
@@ -44,7 +51,7 @@ class HomeTableViewController: UITableViewController {
           
             
         }, failure: { [weak self] error in
-            print(error.localizedDescription)
+            
             guard let strongSelf = self else { return }
 
             let tweetAlert = UIAlertController(title: "Tweet Erorr",
@@ -58,9 +65,12 @@ class HomeTableViewController: UITableViewController {
             let retryAction = UIAlertAction(title: "Retry", style: .destructive) { _ in
                 strongSelf.loadTweets()
             }
+            
+            let exampleAction = UIAlertAction(title: "Cancel", style: .cancel, handler: nil)
 
             tweetAlert.addAction(dismissAction)
             tweetAlert.addAction(retryAction)
+            tweetAlert.addAction(exampleAction)
             strongSelf.present(tweetAlert, animated: true, completion: nil)
             
         })
@@ -87,6 +97,7 @@ class HomeTableViewController: UITableViewController {
           
             
         }, failure: { [weak self] error in
+            
             guard let strongSelf = self else { return }
 
             let tweetAlert = UIAlertController(title: "Tweet Erorr",
@@ -137,6 +148,11 @@ class HomeTableViewController: UITableViewController {
         if let imageData = data {
             cell.tweetImage.image = UIImage(data: imageData)
         }
+        cell.setFavorited(tweetList[indexPath.row]["favorited"] as! Bool)
+        cell.tweetID = tweetList[indexPath.row]["id"] as! Int
+        cell.setRetweet(tweetList[indexPath.row]["retweeted"] as! Bool)
+        cell.retweetCountLabel.text = String(tweetList[indexPath.row]["retweet_count"] as! Int)
+        cell.likeCountLabel.text = String(tweetList[indexPath.row]["favorite_count"] as! Int)
         
         return cell
     }
@@ -154,4 +170,5 @@ class HomeTableViewController: UITableViewController {
     }
 
 }
+
 

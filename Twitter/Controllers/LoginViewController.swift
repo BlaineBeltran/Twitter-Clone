@@ -31,15 +31,15 @@ class LoginViewController: UIViewController, UIAdaptivePresentationControllerDel
         TwitterAPICaller.client?.login(url: url, success: { [weak self] in
             
             guard let strongSelf = self else { return }
+            
             UserDefaults.standard.set(true, forKey: "isLoggedIn")
             strongSelf.performSegue(withIdentifier: "loginToHome", sender: strongSelf)
         }, failure: {  [weak self ] error in
             
             guard let strongSelf = self else { return }
+            
             let alert = UIAlertController(title: "Login Failure", message: error.localizedDescription, preferredStyle: .actionSheet)
             let dismissAction = UIAlertAction(title: "OK", style: .default) { action in
-                
-                
                 strongSelf.dismiss(animated: true, completion: nil)
             }
             
