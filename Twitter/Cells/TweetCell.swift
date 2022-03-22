@@ -8,6 +8,12 @@
 
 import UIKit
 
+protocol TweetTableViewDelegate {
+    
+    func didTapLikeOrRetweet()
+    func didTapShareButton(presentedWith: UIViewController)
+}
+
 class TweetCell: UITableViewCell {
 
     @IBOutlet weak var nameLabel: UILabel!
@@ -19,85 +25,127 @@ class TweetCell: UITableViewCell {
     @IBOutlet weak var likeCountLabel: UILabel!
     
     
-    
+    var delegate: TweetTableViewDelegate?
     
     var isLiked: Bool = false
     var retweeted: Bool = false
     var tweetID: Int = -1
 
-
+// MARK: - IBActions
+    
     @IBAction func likeButtonPressed(_ sender: Any) {
         
         if !isLiked {
-            TwitterAPICaller.client?.favoriteTweet(tweetID: tweetID, success: { [weak self] in
-                
-                guard let strongSelf = self else { return }
-                strongSelf.setFavorited(true)
-                
-            }, failure: { [weak self] _ in
-                
-                guard let strongSelf = self else { return }
-                
-                let failureToFavoriteAlert = UIAlertController(title: "Unable to like tweet", message: nil, preferredStyle: .actionSheet)
-                
-                let okayAction = UIAlertAction(title: "OK", style: .default) { _ in
-                    failureToFavoriteAlert.dismiss(animated: true, completion: nil)
-                }
-                
-                failureToFavoriteAlert.addAction(okayAction)
-                // show alert -> fix later
-            })
+            DispatchQueue.global(qos: .background).async {
+                TwitterAPICaller.client?.favoriteTweet(tweetID: self.tweetID, success: { [weak self] in
+                    
+                    guard let strongSelf = self else { return }
+                    
+                    
+                    DispatchQueue.main.async {
+                        strongSelf.setFavorited(true)
+                    }
+                    strongSelf.delegate?.didTapLikeOrRetweet()
+                    
+                }, failure: { [weak self] _ in
+                    
+                    guard let strongSelf = self else { return }
+                    
+                    let failureToFavoriteAlert = UIAlertController(title: "Unable to like tweet", message: nil, preferredStyle: .actionSheet)
+                    
+                    let okayAction = UIAlertAction(title: "OK", style: .default) { _ in
+                        failureToFavoriteAlert.dismiss(animated: true, completion: nil)
+                    }
+                    
+                    failureToFavoriteAlert.addAction(okayAction)
+                    // show alert -> fix later
+                })
+            }
         } else {
-            TwitterAPICaller.client?.unFavoriteTweet(tweetID: tweetID, success: { [weak self] in
-                
-                guard let strongSelf = self else { return }
-                strongSelf.setFavorited(false)
-                
-            }, failure: { [weak self] _ in
-                
-                let failureToUnfavoriteAlert = UIAlertController(title: "Unable to like tweet", message: nil, preferredStyle: .actionSheet)
-                
-                let okayAction = UIAlertAction(title: "OK", style: .default) { _ in
-                    failureToUnfavoriteAlert.dismiss(animated: true, completion: nil)
-                }
-                
-                failureToUnfavoriteAlert.addAction(okayAction)
-                // show alert -> fix later
-            })
+            DispatchQueue.global(qos: .background).async {
+                TwitterAPICaller.client?.unFavoriteTweet(tweetID: self.tweetID, success: { [weak self] in
+                    
+                    guard let strongSelf = self else { return }
+                    
+                    DispatchQueue.main.async {
+                        print("UI Updated on this thread when unliking ...")
+                        print(Thread.current)
+                        strongSelf.setFavorited(false)
+                    }
+                    strongSelf.delegate?.didTapLikeOrRetweet()
+                    
+                }, failure: { [weak self] _ in
+                    
+                    let failureToUnfavoriteAlert = UIAlertController(title: "Unable to like tweet", message: nil, preferredStyle: .actionSheet)
+                    
+                    let okayAction = UIAlertAction(title: "OK", style: .default) { _ in
+                        failureToUnfavoriteAlert.dismiss(animated: true, completion: nil)
+                    }
+                    
+                    failureToUnfavoriteAlert.addAction(okayAction)
+                    // show alert -> fix later
+                })
+            }
         }
     }
     
     
     @IBAction func retweetButtonPressed(_ sender: Any) {
-        print("tapped")
         if !retweeted {
-            print("making call to retweet")
-            TwitterAPICaller.client?.retweet(tweetID: tweetID, success: { [weak self] in
-                
-                guard let strongSelf = self else { return }
-                strongSelf.setRetweet(true)
-            }, failure: { [weak self] _ in
-                
-                guard let strongSelf = self else { return }
-                // show failure alert
-            })
+            DispatchQueue.global(qos: .background).async {
+                TwitterAPICaller.client?.retweet(tweetID: self.tweetID, success: { [weak self] in
+                    
+                    guard let strongSelf = self else { return }
+                    
+                    DispatchQueue.main.async {
+                        strongSelf.setRetweet(true)
+                    }
+                    strongSelf.delegate?.didTapLikeOrRetweet()
+                    
+                }, failure: { [weak self] _ in
+                    
+                    guard let strongSelf = self else { return }
+                    // show failure alert
+                })
+            }
         } else {
-            
-            TwitterAPICaller.client?.unRetweet(tweetID: tweetID, success: { [weak self] in
-                print("making call to unretweet")
-                guard let strongSelf = self else { return }
-                strongSelf.setRetweet(false)
-            }, failure: { [weak self] _ in
-                
-                guard let strongSelf = self else { return }
-                //show failure alert
-            })
-            
+            DispatchQueue.global(qos: .background).async {
+                TwitterAPICaller.client?.unRetweet(tweetID: self.tweetID, success: { [weak self] in
+                    guard let strongSelf = self else { return }
+                    
+                    DispatchQueue.main.async {
+                        strongSelf.setRetweet(false)
+                    }
+                    strongSelf.delegate?.didTapLikeOrRetweet()
+                }, failure: { [weak self] _ in
+                    
+                    guard let strongSelf = self else { return }
+                    //show failure alert
+                })
+            }
         }
     }
     
     
+    
+    @IBAction func shareButtonPressed(_ sender: Any) {
+        
+        guard let safeText = tweetContentLabel.text else {
+            print("No text found")
+            return
+        }
+        
+        let shareVC = UIActivityViewController(activityItems: [safeText], applicationActivities: [])
+        delegate?.didTapShareButton(presentedWith: shareVC)
+    }
+    
+    
+    
+    
+    
 
+// MARK: - Update tweet like/retweet buttons
+    
     func setFavorited(_ isFavorited: Bool) {
         isLiked = isFavorited
         if isLiked {

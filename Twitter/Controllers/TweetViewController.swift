@@ -52,8 +52,8 @@ class TweetViewController: UIViewController {
                 strongSelf.present(tweetFailureAlert, animated: true, completion: nil)
             })
         } else {
-            //Empty text alert
             
+            //Empty text alert
             let title = "Post Error"
             let message = "Unable to post tweets without text. Please provide a tweet that is not empty"
             let emptyTextAlert = UIAlertController(title: title, message: message, preferredStyle: .actionSheet)

@@ -46,8 +46,11 @@ class HomeTableViewController: UITableViewController {
                 strongSelf.tweetList.append(tweet)
             }
             
-            strongSelf.tableView.reloadData()
-            strongSelf.myRefreshControl.endRefreshing()
+            DispatchQueue.main.async {
+                strongSelf.tableView.reloadData()
+                strongSelf.myRefreshControl.endRefreshing()
+            }
+            
           
             
         }, failure: { [weak self] error in
@@ -93,7 +96,9 @@ class HomeTableViewController: UITableViewController {
                 strongSelf.tweetList.append(tweet)
             }
             
-            strongSelf.tableView.reloadData()
+            DispatchQueue.main.async {
+                strongSelf.tableView.reloadData()
+            }
           
             
         }, failure: { [weak self] error in
@@ -140,6 +145,7 @@ class HomeTableViewController: UITableViewController {
             return UITableViewCell()
         }
         
+        cell.delegate = self
         let user = tweetList[indexPath.row]["user"] as! NSDictionary
         let imageUrl = URL(string: (user["profile_image_url_https"] as? String)!)
         let data = try? Data(contentsOf: imageUrl!)
@@ -169,6 +175,60 @@ class HomeTableViewController: UITableViewController {
         tableView.deselectRow(at: indexPath, animated: true)
     }
 
+}
+
+// TweetTableViewDelegate methods
+extension HomeTableViewController: TweetTableViewDelegate {
+    
+    // presenting share sheet
+    func didTapShareButton(presentedWith: UIViewController) {
+        
+        present(presentedWith, animated: true, completion: nil)
+    }
+    
+
+    func didTapLikeOrRetweet() {
+        
+        let url = "https://api.twitter.com/1.1/statuses/home_timeline.json"
+        let myParams = ["count":numberOfTweet]
+        
+        TwitterAPICaller.client?.getDictionariesRequest(url: url, parameters: myParams as [String : Any], success: { [weak self] (tweets: [NSDictionary]) in
+            
+            guard let strongSelf = self else { return }
+            
+            strongSelf.tweetList.removeAll()
+            for tweet in tweets {
+                strongSelf.tweetList.append(tweet)
+            }
+            
+            DispatchQueue.main.async {
+                // Update UI with new like count
+                strongSelf.tableView.reloadData()
+            }
+            
+            
+        }, failure: { [weak self] error in
+            
+            guard let strongSelf = self else { return }
+
+            let tweetAlert = UIAlertController(title: "Tweet Erorr",
+                                               message: "\(error.localizedDescription)",
+                                               preferredStyle: .actionSheet)
+
+            let dismissAction = UIAlertAction(title: "Dismiss", style: .default) { _ in
+                tweetAlert.dismiss(animated: true, completion: nil)
+            }
+
+            let retryAction = UIAlertAction(title: "Retry", style: .destructive) { _ in
+                strongSelf.loadTweets()
+            }
+
+            tweetAlert.addAction(dismissAction)
+            tweetAlert.addAction(retryAction)
+            strongSelf.present(tweetAlert, animated: true, completion: nil)
+            
+        })
+    }
 }
 
 
